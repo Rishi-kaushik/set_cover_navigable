@@ -49,7 +49,10 @@ class NavigableGraphBuilder:
             points_to_analyze = list(range(n))
         
         graph = {}
-        for i in points_to_analyze:
+        total_points = len(points_to_analyze)
+        for idx, i in enumerate(points_to_analyze):
+            if (idx + 1) % 10 == 0 or idx == 0:
+                print(f"     Processing vertex {idx + 1}/{total_points} (point {i})...")
             graph[i] = self.solve_for_point(i)
         
         return graph
@@ -81,40 +84,59 @@ def quick_sparsity_analysis(distance_matrix, sample_points: int | None = None, r
 
 if __name__ == "__main__":
     import numpy as np
+    import time
     from lib.data_utils import load_fvecs, compute_distance_matrix
     
-    print("🔬 Navigable Graph Sparsity Analysis")
+    print("Navigable Graph Sparsity Analysis")
     print("=" * 50)
     
     # Load SIFT dataset
-    print("📊 Loading SIFT dataset...")
+    print("Loading SIFT dataset...")
     sift_path = os.path.join(os.path.dirname(__file__), '..', 'siftsmall')
     vectors = load_fvecs(os.path.join(sift_path, 'siftsmall_base.fvecs'))
     print(f"   Loaded {len(vectors)} SIFT vectors of dimension {len(vectors[0])}")
     
-    # Use subset for faster computation
-    subset_size = 1000  # Use 1000 points for neighbor index
-    if len(vectors) > subset_size:
-        vectors = vectors[:subset_size]
-        print(f"   Using subset of {len(vectors)} points for analysis")
+    # Use complete dataset for meaningful sparsity analysis
+    print(f"   Using complete dataset of {len(vectors)} points for neighbor index")
+    print(f"   Note: Building neighbor index for {len(vectors)} points will take time...")
     
     # Compute distance matrix
-    print("📏 Computing distance matrix...")
+    print("Computing distance matrix...")
+    start_time = time.time()
     distance_matrix = compute_distance_matrix(vectors)
+    distance_time = time.time() - start_time
     print(f"   Distance matrix shape: {distance_matrix.shape}")
+    print(f"   Distance computation took: {distance_time:.1f} seconds")
     
     # Build neighbor index (full cache needed for accurate set cover)
-    print("🏗️  Building neighbor index...")
+    print("Building neighbor index...")
+    start_time = time.time()
     neighbor_index = NeighborIndex(distance_matrix)
-    print("   ✓ Neighbor index built")
+    index_time = time.time() - start_time
+    print(f"   Neighbor index built in {index_time:.1f} seconds")
     
-    # Analyze sparsity on sample of 100 points
-    print("🎯 Analyzing sparsity for sample of 100 points...")
+    # Analyze sparsity: sample vertices, but each considers ALL points as neighbors
+    sample_size = 50  # Smaller sample since set cover on 10k points takes time
+    print(f"Analyzing sparsity for {sample_size} sampled vertices...")
+    print(f"   Dataset size: {len(vectors)} points in neighbor index")
+    print(f"   Sampling {sample_size} vertices to analyze their out-degrees")
+    print(f"   Each vertex can connect to any of the other {len(vectors)-1} points")
+    print(f"   Note: Set cover solving on {len(vectors)} points will take time per vertex...")
     builder = NavigableGraphBuilder(neighbor_index)
-    stats = builder.analyze_sparsity(sample_points=100, random_seed=42)
+    
+    # Test one point to verify universe size
+    sample_point = 0
+    universe, sets_dict = neighbor_index.create_set_cover_instance(sample_point)
+    print(f"   Verification: Point {sample_point} universe size = {len(universe)} points")
+    print(f"   Verification: Point {sample_point} has {len(sets_dict)} potential neighbors")
+    
+    start_time = time.time()
+    stats = builder.analyze_sparsity(sample_points=sample_size, random_seed=42)
+    analysis_time = time.time() - start_time
+    print(f"   Sparsity analysis completed in {analysis_time:.1f} seconds")
     
     # Print results
-    print("\n📈 Sparsity Analysis Results:")
+    print("\nSparsity Analysis Results:")
     print(f"   Sample size: {stats['num_points']} points")
     print(f"   Total edges: {stats['total_edges']}")
     print(f"   Average degree: {stats['avg_degree']:.2f}")
@@ -125,7 +147,7 @@ if __name__ == "__main__":
     import math
     n = len(vectors)
     theoretical_bound = math.log(n)
-    print(f"\n🎯 Comparison to Theory:")
+    print(f"\nComparison to Theory:")
     print(f"   Dataset size (n): {n}")
     print(f"   Theoretical O(log n) bound: {theoretical_bound:.2f}")
     print(f"   Actual average degree: {stats['avg_degree']:.2f}")
@@ -133,10 +155,10 @@ if __name__ == "__main__":
     
     # Degree distribution summary
     degrees = stats['degree_distribution']
-    print(f"\n📊 Degree Distribution:")
+    print(f"\nDegree Distribution:")
     print(f"   25th percentile: {np.percentile(degrees, 25):.1f}")
     print(f"   50th percentile: {np.percentile(degrees, 50):.1f}")
     print(f"   75th percentile: {np.percentile(degrees, 75):.1f}")
     print(f"   95th percentile: {np.percentile(degrees, 95):.1f}")
     
-    print("\n✅ Analysis complete!")
+    print("\nAnalysis complete!")
