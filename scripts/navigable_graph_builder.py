@@ -35,7 +35,7 @@ class NavigableGraphBuilder:
         
         return neighbors
     
-    def build_navigable_graph(self, sample_points: int | None = None, random_seed: int | None = None) -> dict:
+    def build_navigable_graph(self, sample_points=None, random_seed=None):
         """Build navigable graph for sampled points."""
         n = self.neighbor_index.n
         
@@ -57,7 +57,7 @@ class NavigableGraphBuilder:
         
         return graph
     
-    def analyze_sparsity(self, sample_points: int | None = None, random_seed: int | None = None) -> dict:
+    def analyze_sparsity(self, sample_points=None, random_seed=None):
         """Analyze sparsity of the navigable graph."""
         graph = self.build_navigable_graph(sample_points, random_seed)
         
@@ -75,7 +75,7 @@ class NavigableGraphBuilder:
         return stats
 
 
-def quick_sparsity_analysis(distance_matrix, sample_points: int | None = None, random_seed: int | None = None) -> dict:
+def quick_sparsity_analysis(distance_matrix, sample_points=None, random_seed=None):
     """Quick sparsity analysis from distance matrix."""
     neighbor_index = NeighborIndex(distance_matrix)
     builder = NavigableGraphBuilder(neighbor_index)

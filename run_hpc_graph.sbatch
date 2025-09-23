@@ -16,6 +16,7 @@ module load openmpi/intel/4.0.5
 
 # Install required packages to user directory
 # Core dependencies: numpy for computations, mpi4py for future parallelization
+# typing_extensions for older Python compatibility (if needed)
 python3 -m pip install --user numpy mpi4py
 
 # Run the sparsity analysis with mpirun for future compatibility
