@@ -53,3 +53,43 @@ class NeighborIndex:
         """
         reference_rank = self.RevNN[target, reference]
         return self.NN[target, :reference_rank]
+    
+    def get_set_elements(self, point_i: int, neighbor_k: int) -> set:
+        """Get elements in set S_{i->k} for navigable graph set cover.
+        
+        Returns points j where d(k,j) < d(i,j), i.e., points closer to k than to i.
+        """
+        if point_i == neighbor_k:
+            return set()
+        
+        # Find rank of point_i in neighbor_k's sorted neighbor list
+        rank_of_i_from_k = self.RevNN[neighbor_k, point_i]
+        
+        # All points closer to k than i is to k
+        closer_to_k = self.NN[neighbor_k, :rank_of_i_from_k]
+        
+        # Convert to set and remove point_i itself (can't be in universe)
+        elements = set(closer_to_k) - {point_i}
+        
+        return elements
+    
+    def create_set_cover_instance(self, point_i: int) -> tuple:
+        """Create set cover instance for point i's navigable graph problem.
+        
+        Returns:
+            (universe, sets_dict) where universe is points to cover and 
+            sets_dict maps set names to their elements
+        """
+        # Universe: all other points that need to be "covered" for navigability
+        universe = set(range(self.n)) - {point_i}
+        
+        # Sets: S_{i->k} for each potential neighbor k
+        sets_dict = {}
+        for k in range(self.n):
+            if k != point_i:
+                # S_{i->k} = points closer to k than to i
+                set_elements = self.get_set_elements(point_i, k)
+                sets_dict[f'edge_{point_i}_to_{k}'] = set_elements
+        
+        return universe, sets_dict
+    
