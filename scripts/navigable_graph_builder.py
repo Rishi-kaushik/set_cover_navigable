@@ -116,7 +116,7 @@ if __name__ == "__main__":
     print(f"   Neighbor index built in {index_time:.1f} seconds")
     
     # Analyze sparsity: sample vertices, but each considers ALL points as neighbors
-    sample_size = 50  # Smaller sample since set cover on 10k points takes time
+    sample_size = 1000  # Smaller sample since set cover on 10k points takes time
     print(f"Analyzing sparsity for {sample_size} sampled vertices...")
     print(f"   Dataset size: {len(vectors)} points in neighbor index")
     print(f"   Sampling {sample_size} vertices to analyze their out-degrees")
