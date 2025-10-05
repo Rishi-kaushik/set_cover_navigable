@@ -20,5 +20,5 @@ module load openmpi/intel/4.0.5
 python3 -m pip install --user numpy mpi4py
 
 # Run the sparsity analysis with mpirun for future compatibility
-# mpirun python3 /home/rk4870/set_cover_navigable/scripts/navigable_graph_builder.py
+# mpirun python3 /home/rk4870/set_cover_navigable/scripts/set_cover_analysis.py
 mpirun python3 /home/rk4870/set_cover_navigable/scripts/mrng_analysis.py

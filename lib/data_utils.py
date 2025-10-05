@@ -1,29 +1,25 @@
+from typing import Tuple
 import numpy as np
 import struct
 from multiprocessing import Pool
 
 
-def _compute_distance_row(args):
-    """Compute distances from one point to all others for parallel processing (vectorized)."""
+def _compute_distance_row(args: Tuple[int, np.ndarray, np.ndarray]) -> Tuple[int, np.ndarray]:
+    """Compute distances from one point to all others (vectorized)."""
     i, point_i, all_points = args
-    # Vectorized computation: broadcast subtraction, then norm along axis 1
     distances = np.linalg.norm(all_points - point_i, axis=1)
     return i, distances
 
 
 def compute_distance_matrix(points: np.ndarray) -> np.ndarray:
-    """Compute pairwise Euclidean distances between all points using parallel processing."""
+    """Compute pairwise Euclidean distances using parallel processing."""
     n = len(points)
     distances = np.zeros((n, n))
     
     with Pool() as pool:
-        # Prepare arguments for each point
         args = [(i, points[i], points) for i in range(n)]
-        
-        # Process points in parallel
         results = pool.map(_compute_distance_row, args)
         
-        # Reconstruct distance matrix
         for i, distance_row in results:
             distances[i] = distance_row
     
