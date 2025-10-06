@@ -5,9 +5,9 @@ import numpy as np
 from .base import SearchGraph
 
 
-def _process_alpha_batch(args: Tuple[List[int], Tuple[np.ndarray, np.ndarray, int]]) -> List[Tuple[int, List[int]]]:
+def _process_alpha_batch(args: Tuple[List[int], Tuple[np.ndarray, np.ndarray, int, np.ndarray, float]]) -> List[Tuple[int, List[int]]]:
     """Process batch of nodes for Alpha Reachable Graph construction."""
-    batch_nodes, (NN, RevNN, n) = args
+    batch_nodes, (NN, RevNN, n, distance_matrix, alpha) = args
     results = []
     
     for u in batch_nodes:
@@ -16,11 +16,12 @@ def _process_alpha_batch(args: Tuple[List[int], Tuple[np.ndarray, np.ndarray, in
         
         for rank in range(1, n):
             v = NN_u[rank]
+            dist_uv = distance_matrix[u, v]
             
             blocked = False
             for w in neighbors:
-                w_rank_from_v = RevNN[v, w]
-                if w_rank_from_v < RevNN[v, u]:
+                dist_uw = distance_matrix[u, w]
+                if alpha * dist_uw < dist_uv:
                     blocked = True
                     break
             
@@ -35,11 +36,17 @@ def _process_alpha_batch(args: Tuple[List[int], Tuple[np.ndarray, np.ndarray, in
 class AlphaGraph(SearchGraph):
     """Alpha Reachable Graph implementation."""
     
+    def __init__(self, distance_matrix: np.ndarray, neighbor_index=None, alpha: float = 2.0):
+        """Initialize Alpha Reachable Graph."""
+        super().__init__(distance_matrix, neighbor_index)
+        self.alpha = alpha
+    
     def _get_batch_processor(self) -> Callable:
         """Return batch processing function."""
         return _process_alpha_batch
     
     def _get_shared_data(self) -> Any:
         """Return shared data for batch processing."""
-        return self.neighbor_index.get_serializable_data()
+        NN, RevNN, n = self.neighbor_index.get_serializable_data()
+        return (NN, RevNN, n, self.distance_matrix, self.alpha)
     
