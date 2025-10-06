@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 import numpy as np
 import time
 from lib.data_utils import load_fvecs, compute_distance_matrix
-from lib.search_graphs import MRNG, SetCoverGraph
+from lib.search_graphs import MRNG, SetCoverGraph, AlphaGraph, TMNG
 from lib.neighbor_index import NeighborIndex
 
 
@@ -55,7 +55,9 @@ def main():
     
     graph_types = {
         'MRNG': MRNG,
-        'SetCoverGraph': SetCoverGraph
+        'SetCoverGraph': SetCoverGraph,
+        'AlphaGraph': AlphaGraph,
+        'TMNG': TMNG
     }
     
     print("\n[4/4] Building graphs and analyzing sparsity...")
