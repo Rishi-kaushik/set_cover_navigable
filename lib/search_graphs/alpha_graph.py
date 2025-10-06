@@ -20,8 +20,8 @@ def _process_alpha_batch(args: Tuple[List[int], Tuple[np.ndarray, np.ndarray, in
             
             blocked = False
             for w in neighbors:
-                dist_uw = distance_matrix[u, w]
-                if alpha * dist_uw < dist_uv:
+                dist_wv = distance_matrix[w, v]
+                if dist_wv * alpha < dist_uv:
                     blocked = True
                     break
             

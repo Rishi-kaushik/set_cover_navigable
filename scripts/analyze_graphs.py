@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Analyze sparsity of different graph construction algorithms on SIFT dataset."""
+"""Analyze sparsity of different graph construction algorithms on SIFT dataset.
+
+Configuration:
+  - use_full_dataset: True = use all dataset points, False = sample subset
+  - dataset_sample_size: Number of points to sample (if use_full_dataset=False)
+  - edge_compute_size: Number of points to compute outgoing edges for
+"""
 
 import sys
 import os
@@ -13,7 +19,11 @@ from lib.neighbor_index import NeighborIndex
 
 
 def main():
-    sample_size = 500
+    # ============ CONFIGURATION ============
+    use_full_dataset = True    # True = use all dataset points, False = sample subset
+    dataset_sample_size = 500  # Only used if use_full_dataset = False
+    edge_compute_size = 50     # Number of points to compute edges for
+    # ======================================
     
     print("=" * 80)
     print(f"Graph Sparsity Analysis on SIFT Dataset")
@@ -25,19 +35,28 @@ def main():
     load_time = time.time() - start_time
     total_points = len(base_vectors)
     
-    print(f"  Loaded {total_points} vectors of dimension {base_vectors.shape[1]}")
+    if use_full_dataset:
+        all_points = base_vectors
+        dataset_size = total_points
+        print(f"  Loaded {total_points} vectors of dimension {base_vectors.shape[1]}")
+        print(f"  Using FULL dataset")
+    else:
+        all_points = base_vectors[:dataset_sample_size]
+        dataset_size = dataset_sample_size
+        print(f"  Loaded {total_points} vectors of dimension {base_vectors.shape[1]}")
+        print(f"  Sampling {dataset_sample_size} points from dataset")
+    
     print(f"  Time: {load_time:.2f}s")
     
     print("\n" + "=" * 80)
-    print(f"Dataset size:    {total_points} points")
-    print(f"Sample size:     {sample_size} points (computing outgoing edges)")
-    print(f"Edge targets:    All {total_points} points in dataset")
+    print(f"Dataset size:    {total_points} points (full)")
+    print(f"Working dataset: {dataset_size} points")
+    print(f"Computing edges: {edge_compute_size} points")
+    print(f"Edge targets:    All {dataset_size} points in working dataset")
     print("=" * 80)
     
-    all_points = base_vectors
-    
     print("\n[2/4] Computing distance matrix...")
-    print(f"  Computing distances for all {total_points} points...")
+    print(f"  Computing distances for {dataset_size} points...")
     start_time = time.time()
     distance_matrix = compute_distance_matrix(all_points)
     distance_time = time.time() - start_time
@@ -51,19 +70,21 @@ def main():
     print(f"  NeighborIndex computed for {neighbor_index.n} points")
     print(f"  Time: {neighbor_index_time:.2f}s")
     
-    sampled_point_indices = list(range(sample_size))
+    edge_point_indices = list(range(edge_compute_size))
     
     graph_configs = [
         ('MRNG', MRNG, {}),
         ('SetCoverGraph', SetCoverGraph, {}),
-        ('AlphaGraph (alpha=2.0)', AlphaGraph, {'alpha': 2.0}),
-        ('TMNG (tau=0.1)', TMNG, {'tau': 0.1}),
+        ('AlphaGraph (α=1.0)', AlphaGraph, {'alpha': 1.0}),
+        ('AlphaGraph (α=2.0)', AlphaGraph, {'alpha': 2.0}),
+        ('TMNG (τ=0.0)', TMNG, {'tau': 0.0}),
+        ('TMNG (τ=0.1)', TMNG, {'tau': 0.1}),
     ]
     
     print("\n[4/4] Building graphs and analyzing sparsity...")
     print("=" * 80)
-    print(f"Computing outgoing edges for {sample_size} sampled points")
-    print(f"Each sampled point can connect to any of {total_points} points")
+    print(f"Computing outgoing edges for {edge_compute_size} points")
+    print(f"Each point can connect to any of {dataset_size} points in working dataset")
     print("=" * 80)
     
     results = {}
@@ -72,12 +93,12 @@ def main():
         print(f"\n{graph_name}:")
         print("-" * 40)
         
-        print(f"  Initializing with full dataset ({total_points} points)...")
+        print(f"  Initializing with {dataset_size} points...")
         graph_builder = graph_class(distance_matrix, neighbor_index, **graph_params)
         
-        print(f"  Computing edges for {sample_size} sampled points...")
+        print(f"  Computing edges for {edge_compute_size} points...")
         start_time = time.time()
-        stats = graph_builder.analyze_sparsity(sampled_point_indices)
+        stats = graph_builder.analyze_sparsity(edge_point_indices)
         graph_time = time.time() - start_time
         
         stats['runtime'] = graph_time
@@ -112,8 +133,9 @@ def main():
     print(f"{'Total:':<30} {total_time:.2f}s")
     
     print("\n" + "=" * 80)
-    print(f"Note: Each of the {sample_size} sampled points can connect to any")
-    print(f"of the {total_points} points in the full dataset.")
+    print(f"Note: Computed edges for {edge_compute_size} points from a")
+    print(f"working dataset of {dataset_size} points. Each point can connect to any")
+    print(f"of the {dataset_size} points in the working dataset.")
     print("=" * 80)
     print("\n✓ Analysis complete!")
 
