@@ -53,12 +53,12 @@ def main():
     
     sampled_point_indices = list(range(sample_size))
     
-    graph_types = {
-        'MRNG': MRNG,
-        'SetCoverGraph': SetCoverGraph,
-        'AlphaGraph': AlphaGraph,
-        'TMNG': TMNG
-    }
+    graph_configs = [
+        ('MRNG', MRNG, {}),
+        ('SetCoverGraph', SetCoverGraph, {}),
+        ('AlphaGraph (alpha=2.0)', AlphaGraph, {'alpha': 2.0}),
+        ('TMNG (tau=0.1)', TMNG, {'tau': 0.1}),
+    ]
     
     print("\n[4/4] Building graphs and analyzing sparsity...")
     print("=" * 80)
@@ -68,12 +68,12 @@ def main():
     
     results = {}
     
-    for graph_name, graph_class in graph_types.items():
+    for graph_name, graph_class, graph_params in graph_configs:
         print(f"\n{graph_name}:")
         print("-" * 40)
         
         print(f"  Initializing with full dataset ({total_points} points)...")
-        graph_builder = graph_class(distance_matrix, neighbor_index)
+        graph_builder = graph_class(distance_matrix, neighbor_index, **graph_params)
         
         print(f"  Computing edges for {sample_size} sampled points...")
         start_time = time.time()
