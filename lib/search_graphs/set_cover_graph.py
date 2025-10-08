@@ -1,94 +1,68 @@
-"""Set cover graph construction using greedy set cover algorithm."""
+"""Set cover graph construction using greedy set cover algorithm optimized with reverse index."""
 
-from typing import Set, Dict, List, Any, Optional, Tuple, Callable
+from typing import List, Any, Tuple, Callable
 import numpy as np
 from .base import SearchGraph
 
 
-class GreedySetCover:
-    """Greedy O(log n) set cover approximation algorithm."""
+def _greedy_set_cover_optimized(point_i: int, NN: np.ndarray, RevNN: np.ndarray, n: int) -> List[int]:
+    """Greedy set cover using reverse index directly without creating explicit sets.
     
-    def solve(self, universe: Set[int], sets_dict: Dict[str, Set[int]]) -> List[str]:
-        """Solve set cover greedily."""
-        if not universe or not sets_dict:
-            return []
-        
-        universe = set(universe)
-        sets_dict = {name: set(elements) for name, elements in sets_dict.items()}
-        
-        uncovered = universe.copy()
-        solution = []
-        available_sets = sets_dict.copy()
-        
-        while uncovered and available_sets:
-            best_set_name = self._find_best_set(uncovered, available_sets)
-            
-            if best_set_name is None:
-                break
-            
-            solution.append(best_set_name)
-            uncovered -= available_sets[best_set_name]
-            del available_sets[best_set_name]
-        
-        return solution
+    For point_i, we need to select edges to neighbors such that all other points 
+    are "covered". A point j is covered by edge (i → k) if j is closer to k than to i.
+    """
+    if n <= 1:
+        return []
     
-    def _find_best_set(self, uncovered: Set[int], 
-                       available_sets: Dict[str, Set[int]]) -> Optional[str]:
-        """Find set covering most uncovered elements."""
-        best_set_name = None
+    uncovered = np.ones(n, dtype=bool)
+    uncovered[point_i] = False
+    neighbors = []
+    
+    num_uncovered = n - 1
+    
+    candidate_neighbors = np.arange(n)
+    candidate_mask = np.ones(n, dtype=bool)
+    candidate_mask[point_i] = False
+    
+    while num_uncovered > 0:
+        best_neighbor = -1
         max_coverage = 0
         
-        for set_name, set_elements in available_sets.items():
-            coverage = len(set_elements & uncovered)
+        for k in candidate_neighbors[candidate_mask]:
+            rank_of_i_from_k = RevNN[k, point_i]
+            
+            if rank_of_i_from_k == 0:
+                candidate_mask[k] = False
+                continue
+            
+            closer_points = NN[k, :rank_of_i_from_k]
+            coverage = np.sum(uncovered[closer_points])
             
             if coverage > max_coverage:
                 max_coverage = coverage
-                best_set_name = set_name
+                best_neighbor = k
         
-        return best_set_name
-
-
-def _get_set_elements_from_data(point_i: int, neighbor_k: int, NN: np.ndarray, RevNN: np.ndarray) -> Set[int]:
-    """Get points closer to neighbor_k than to point_i."""
-    if point_i == neighbor_k:
-        return set()
+        if best_neighbor == -1 or max_coverage == 0:
+            break
+        
+        neighbors.append(best_neighbor)
+        candidate_mask[best_neighbor] = False
+        
+        rank_of_i_from_best = RevNN[best_neighbor, point_i]
+        covered_points = NN[best_neighbor, :rank_of_i_from_best]
+        uncovered[covered_points] = False
+        num_uncovered = np.sum(uncovered)
     
-    rank_of_i_from_k = RevNN[neighbor_k, point_i]
-    closer_to_k = NN[neighbor_k, :rank_of_i_from_k]
-    elements = set(closer_to_k) - {point_i}
-    
-    return elements
-
-
-def _create_set_cover_instance_from_data(point_i: int, NN: np.ndarray, RevNN: np.ndarray, n: int) -> Tuple[Set[int], Dict[str, Set[int]]]:
-    """Create set cover instance for point_i."""
-    universe = set(range(n)) - {point_i}
-    
-    sets_dict = {}
-    for k in range(n):
-        if k != point_i:
-            set_elements = _get_set_elements_from_data(point_i, k, NN, RevNN)
-            sets_dict[f'edge_{point_i}_to_{k}'] = set_elements
-    
-    return universe, sets_dict
+    return neighbors
 
 
 def _process_setcover_batch(args: Tuple[List[int], Tuple[np.ndarray, np.ndarray, int]]) -> List[Tuple[int, List[int]]]:
     """Process batch of nodes for set cover graph construction."""
     batch_nodes, (NN, RevNN, n) = args
-    solver = GreedySetCover()
     results = []
     
     for point_i in batch_nodes:
-        universe, sets_dict = _create_set_cover_instance_from_data(point_i, NN, RevNN, n)
-        solution = solver.solve(universe, sets_dict)
-        
-        neighbors = []
-        for set_name in solution:
-            parts = set_name.split('_')
-            neighbor_k = int(parts[-1])
-            neighbors.append(neighbor_k)
-        
+        neighbors = _greedy_set_cover_optimized(point_i, NN, RevNN, n)
         results.append((point_i, neighbors))
     
     return results
@@ -104,6 +78,3 @@ class SetCoverGraph(SearchGraph):
     def _get_shared_data(self) -> Any:
         """Return shared data for batch processing."""
         return self.neighbor_index.get_serializable_data()
-    
-
-
