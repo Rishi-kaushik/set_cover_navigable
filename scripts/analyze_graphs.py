@@ -22,7 +22,7 @@ def main():
     # ============ CONFIGURATION ============
     use_full_dataset = False    # True = use all dataset points, False = sample subset
     dataset_sample_size = 2000  # Only used if use_full_dataset = False
-    edge_compute_size = 50     # Number of points to compute edges for
+    edge_compute_size = 500     # Number of points to compute edges for
     # ======================================
     
     print("=" * 80)

@@ -6,11 +6,7 @@ from .base import SearchGraph
 
 
 def _greedy_set_cover_optimized(point_i: int, NN: np.ndarray, RevNN: np.ndarray, n: int) -> List[int]:
-    """Greedy set cover using reverse index directly without creating explicit sets.
-    
-    For point_i, we need to select edges to neighbors such that all other points 
-    are "covered". A point j is covered by edge (i → k) if j is closer to k than to i.
-    """
+    """Greedy set cover using reverse index directly without creating explicit sets."""
     if n <= 1:
         return []
     
@@ -33,6 +29,9 @@ def _greedy_set_cover_optimized(point_i: int, NN: np.ndarray, RevNN: np.ndarray,
             
             if rank_of_i_from_k == 0:
                 candidate_mask[k] = False
+                continue
+            
+            if rank_of_i_from_k <= max_coverage:
                 continue
             
             closer_points = NN[k, :rank_of_i_from_k]
